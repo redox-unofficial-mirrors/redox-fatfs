@@ -99,8 +99,8 @@ impl<D: Read + Write + Seek> FileScheme<D> {
 }
 
 impl<D: Read + Write + Seek> Scheme for FileScheme<D> {
-    fn open(&self, url: &[u8], flags: usize, uid: u32, gid: u32) -> Result<usize> {
-        let path = str::from_utf8(url).unwrap_or("").trim_matches('/');
+    fn open(&self, url: &str, flags: usize, uid: u32, gid: u32) -> Result<usize> {
+        let path = url.trim_matches('/');
 
         println!("Open '{}' {:X}", path, flags);
 
@@ -242,12 +242,12 @@ impl<D: Read + Write + Seek> Scheme for FileScheme<D> {
         Ok(id)
     }
 
-    fn chmod(&self, _url: &[u8], _mode: u16, _uid: u32, _gid: u32) -> Result<usize> {
+    fn chmod(&self, _url: &str, _mode: u16, _uid: u32, _gid: u32) -> Result<usize> {
         Ok(0)
     }
 
-    fn rmdir(&self, url: &[u8], uid: u32, gid: u32) -> Result<usize> {
-        let path = str::from_utf8(url).unwrap_or("").trim_matches('/');
+    fn rmdir(&self, url: &str, uid: u32, gid: u32) -> Result<usize> {
+        let path = url.trim_matches('/');
 
         println!("Rmdir '{}'", path);
 
@@ -272,8 +272,8 @@ impl<D: Read + Write + Seek> Scheme for FileScheme<D> {
         }
     }
 
-    fn unlink(&self, url: &[u8], uid: u32, gid: u32) -> Result<usize> {
-        let path = str::from_utf8(url).unwrap_or("").trim_matches('/');
+    fn unlink(&self, url: &str, uid: u32, gid: u32) -> Result<usize> {
+        let path = url.trim_matches('/');
 
         println!("Unlink '{}'", path);
 
@@ -343,7 +343,7 @@ impl<D: Read + Write + Seek> Scheme for FileScheme<D> {
         }
     }
 
-    fn seek(&self, id: usize, pos: usize, whence: usize) -> Result<usize> {
+    fn seek(&self, id: usize, pos: isize, whence: usize) -> Result<isize> {
         println!("Seek {}, {} {}", id, pos, whence);
         let mut files = self.files.lock();
         let mut fs = self.fs.borrow_mut();
@@ -397,8 +397,8 @@ impl<D: Read + Write + Seek> Scheme for FileScheme<D> {
         }
     }
 
-    fn frename(&self, id: usize, url: &[u8], uid: u32, _gid: u32) -> Result<usize> {
-        let path = str::from_utf8(url).unwrap_or("").trim_matches('/');
+    fn frename(&self, id: usize, url: &str, uid: u32, _gid: u32) -> Result<usize> {
+        let path = url.trim_matches('/');
 
         println!("Frename {}, {} from {}, {}", id, path, uid, _gid);
 

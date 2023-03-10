@@ -14,8 +14,8 @@ path = "src/bin/mount.rs"
 doc = false
 
 [dependencies]
-spin = "0.4"
-redox_syscall = "0.1"
+spin = "0.9"
+redox_syscall = "0.2"
 #uuid = { version = "0.5", features = ["v4"] }
 byteorder = "1.3.2"
 log = "0.4.6"

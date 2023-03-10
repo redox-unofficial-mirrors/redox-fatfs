@@ -24,7 +24,7 @@ pub trait Resource<D: Read + Write + Seek> {
     fn dup(&self) -> Result<Box<dyn Resource<D>>>;
     fn read(&mut self, buf: &mut [u8], fs: &mut FileSystem<D>) -> Result<usize>;
     fn write(&mut self, buf: &[u8], fs: &mut FileSystem<D>) -> Result<usize>;
-    fn seek(&mut self, offset: usize, whence: usize, fs: &mut FileSystem<D>) -> Result<usize>;
+    fn seek(&mut self, offset: isize, whence: usize, fs: &mut FileSystem<D>) -> Result<isize>;
     fn fmap(&mut self, map: &Map, maps: &mut Fmaps, fs: &mut FileSystem<D>) -> Result<usize>;
     fn funmap(&mut self, maps: &mut Fmaps, fs: &mut FileSystem<D>) -> Result<usize>;
     fn fchmod(&mut self, mode: u16, fs: &mut FileSystem<D>) -> Result<usize>;
@@ -40,7 +40,7 @@ pub trait Resource<D: Read + Write + Seek> {
 pub struct DirResource {
     dir: Dir,
     data: Option<Vec<u8>>,
-    seek: usize,
+    seek: isize,
     uid: Option<u32>,
     gid: Option<u32>,
     mode: Option<u16>
@@ -95,8 +95,8 @@ impl<D: Read + Write + Seek> Resource<D> for DirResource {
     fn read(&mut self, buf: &mut [u8], _fs: &mut FileSystem<D>) -> Result<usize> {
         let data = self.data.as_ref().ok_or(Error::new(EISDIR))?;
         let mut i = 0;
-        while i < buf.len() && self.seek < data.len() {
-            buf[i] = data[self.seek];
+        while i < buf.len() && self.seek >= 0 && self.seek < data.len() as isize {
+            buf[i] = data[self.seek as usize];
             i += 1;
             self.seek += 1;
         }
@@ -108,12 +108,12 @@ impl<D: Read + Write + Seek> Resource<D> for DirResource {
     }
 
 
-    fn seek(&mut self, offset: usize, whence: usize, _fs: &mut FileSystem<D>) -> Result<usize> {
+    fn seek(&mut self, offset: isize, whence: usize, _fs: &mut FileSystem<D>) -> Result<isize> {
         let data = self.data.as_ref().ok_or(Error::new(EBADF))?;
         self.seek = match whence {
-            SEEK_SET => max(0, min(data.len() as isize, offset as isize)) as usize,
-            SEEK_CUR => max(0, min(data.len() as isize, self.seek as isize + offset as isize)) as usize,
-            SEEK_END => max(0, min(data.len() as isize, data.len() as isize + offset as isize)) as usize,
+            SEEK_SET => max(0, min(data.len() as isize, offset)),
+            SEEK_CUR => max(0, min(data.len() as isize, self.seek as isize + offset)),
+            SEEK_END => max(0, min(data.len() as isize, data.len() as isize + offset)),
             _ => return Err(Error::new(EINVAL))
         };
 
@@ -271,7 +271,7 @@ impl<D: Read + Write + Seek> Resource<D> for FileResource {
         }
     }
 
-    fn seek(&mut self, offset: usize, whence: usize, _fs: &mut FileSystem<D>) -> Result<usize> {
+    fn seek(&mut self, offset: isize, whence: usize, _fs: &mut FileSystem<D>) -> Result<isize> {
         let size = self.file.size();
 
         self.seek = match whence {
@@ -281,7 +281,7 @@ impl<D: Read + Write + Seek> Resource<D> for FileResource {
             _ => return Err(Error::new(EINVAL))
         };
 
-        Ok(self.seek as usize)
+        Ok(self.seek as isize)
     }
 
     fn fmap(&mut self, _map: &Map, _maps: &mut Fmaps, _fs: &mut FileSystem<D>) -> Result<usize> {
